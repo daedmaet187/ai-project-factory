@@ -11,6 +11,7 @@ All agents involved in project generation, their roles, when they're spawned, an
 | **Orchestrator** | Claude (Watson) | Planning, coordination, memory, GitHub ops | Always — root session |
 | **Implementer** | Codex / GPT-4o | Code writing, file edits, execution | For any implementation task |
 | **Reviewer** | Claude | Code review, security audit, pattern validation | After each implementation phase |
+| **Test Agent** | Claude / GPT-4o | Test suite writing for completed implementations | After each Implementer finishes a layer |
 | **Infra Agent** | Codex | OpenTofu-only infrastructure changes | When infra modules need changes |
 | **UI Agent** | Claude | Design token extraction, component scaffolding | When Figma/design provided |
 | **Brain Agent** | Claude | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
@@ -25,6 +26,7 @@ These boundaries are strict. Role violations cause inconsistency.
 Orchestrator  → Plans, coordinates, never implements
 Implementer   → Implements, never architects
 Reviewer      → Reviews, never implements
+Test Agent    → Writes tests, never implements features
 Infra Agent   → Infrastructure only, never app code
 UI Agent      → Design system only, no business logic
 ```
@@ -50,6 +52,13 @@ Orchestrator
     │   └── spawns → Implementer (mobile)    ─┘
     │
     │   AFTER all Phase 5 complete:
+    │
+    ├── [Phase 5b, parallel]:
+    │   ├── spawns → Test Agent (backend tests)   ─┐
+    │   ├── spawns → Test Agent (admin tests)      ├── all three in parallel
+    │   └── spawns → Test Agent (mobile tests)    ─┘
+    │
+    │   AFTER all Phase 5b complete:
     │
     └── [Phase 6] Reviewer Agent ──────────────────────────────────────►
 ```
@@ -131,6 +140,7 @@ Not every task needs a specialized agent. Before creating a new agent type:
 Only add a new agent type if the work is large enough to justify it AND has strict role boundaries that prevent overlap with existing agents.
 
 Current candidates for future agents:
-- **Test Agent**: Writes test suites from completed implementations
 - **Security Agent**: Dedicated security scan and penetration test sim
 - **Migration Agent**: Database migration runner (currently handled by Implementer)
+
+See `agents/TEST.md` for the Test Agent role card (now active).

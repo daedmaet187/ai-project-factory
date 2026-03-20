@@ -6,6 +6,17 @@ This is the master workflow. After intake is approved, execute phases in this ex
 
 ## Pre-Generation (Orchestrator runs before any phase)
 
+### Step 0: Deep Access Validation (NEW)
+
+Before running preflight or intake:
+
+1. Read `intake/ACCESS.md` for provided credentials
+2. Run validation commands from `intake/ACCESS_VALIDATION.md`
+3. If any validation fails → stop, report what's missing, help human fix
+4. If all pass → proceed to Step 1 (Preflight)
+
+Do not proceed to intake until all credentials are validated.
+
 ### Step 1: Run Preflight
 
 Follow `updater/PREFLIGHT.md`. All four steps must pass.  

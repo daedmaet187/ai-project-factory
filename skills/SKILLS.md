@@ -37,6 +37,8 @@ These are deep technical guides for specific tools. Every implementer must read 
 | `skills/general/secrets-management.md` | Secrets Manager patterns | Handling any credentials |
 | `skills/general/error-handling.md` | Centralized error patterns | Setting up error handling |
 | `skills/general/api-design.md` | REST conventions, response formats | Designing any new endpoint |
+| `skills/general/testing.md` | Test patterns for backend, admin, mobile | Writing any test suite |
+| `skills/general/database-migrations.md` | Migration file format, runner script, rollback | Writing or running DB migrations |
 
 ### Frontend Skills
 

@@ -35,6 +35,21 @@ Ready? Let's start with the basics.
 
 ---
 
+## Pre-Intake: Skill Discovery
+
+Before asking intake questions:
+
+1. Ask the human: "In one sentence, what are you building?"
+2. Extract keywords from their response (technologies, problem domains, pattern types)
+3. Search ClawHub for relevant skills (see `skills/DISCOVERY.md` for process)
+4. If skills found: present them, ask if they should be installed
+5. Update `skills/SKILLS.md` if new skills are installed
+6. Proceed to Group 1
+
+This ensures the factory has all relevant skills before planning begins.
+
+---
+
 ## Group 1: Identity
 
 Ask these together:
