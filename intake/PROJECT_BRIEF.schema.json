@@ -1,0 +1,216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProjectBrief",
+  "description": "Machine-readable project brief produced by the Interactive Intake System. Must have approved: true before generation begins.",
+  "type": "object",
+  "required": ["project", "features", "design", "stack", "infra", "approved"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name", "slug", "description", "purpose", "audience"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable project name"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+          "description": "URL-safe lowercase slug used for repo name, resource names"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "description": "One-sentence description of what the project does"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["SaaS", "Consumer", "Internal", "API", "Marketplace", "Content", "Other"],
+          "description": "Project category — drives stack and architectural defaults"
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who the target users are"
+        },
+        "language": {
+          "type": "string",
+          "default": "en",
+          "description": "Primary UI language (ISO 639-1)"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": ["core", "auth", "admin_dashboard", "mobile_app"],
+      "additionalProperties": false,
+      "properties": {
+        "core": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Core features of the application (5–7 recommended)"
+        },
+        "auth": {
+          "type": "boolean",
+          "description": "Whether user authentication is required"
+        },
+        "admin_dashboard": {
+          "type": "boolean",
+          "description": "Whether an admin web dashboard is required"
+        },
+        "mobile_app": {
+          "type": "boolean",
+          "description": "Whether a mobile app (iOS/Android) is required"
+        },
+        "mobile_platforms": {
+          "type": "string",
+          "enum": ["ios+android", "ios", "android", "none"],
+          "description": "Mobile platform targets. Required when mobile_app is true."
+        },
+        "realtime": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether real-time features (WebSocket, SSE) are needed"
+        },
+        "file_uploads": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether file upload support (images, docs, videos) is needed"
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "default": ["user"],
+          "description": "User roles required in the system"
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "required": ["style", "colors", "dark_mode"],
+      "additionalProperties": false,
+      "properties": {
+        "figma_url": {
+          "type": ["string", "null"],
+          "description": "Full Figma file URL, or null if no Figma provided"
+        },
+        "figma_file_key": {
+          "type": ["string", "null"],
+          "description": "Figma file key extracted from URL, or null"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["minimal", "bold", "enterprise", "dark", "custom"],
+          "description": "Visual style of the application"
+        },
+        "colors": {
+          "type": "object",
+          "required": ["primary"],
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Primary brand color in hex"
+            },
+            "secondary": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Secondary color in hex"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "description": "Accent color in hex"
+            }
+          }
+        },
+        "dark_mode": {
+          "type": "string",
+          "enum": ["required", "optional", "none"],
+          "description": "Dark mode support level"
+        },
+        "typography": {
+          "type": "string",
+          "enum": ["inter", "system", "custom"],
+          "default": "inter",
+          "description": "Typography choice"
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "required": ["backend", "frontend", "database", "infra"],
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["nodejs-express", "nodejs-fastify", "python-fastapi"],
+          "description": "Backend framework. Maps to stacks/backend/"
+        },
+        "frontend": {
+          "type": "string",
+          "enum": ["react-shadcn", "nextjs", "vue-nuxt"],
+          "description": "Frontend framework for admin/web. Maps to stacks/frontend/"
+        },
+        "mobile": {
+          "type": "string",
+          "enum": ["flutter-riverpod", "react-native", "none"],
+          "description": "Mobile framework. Maps to stacks/mobile/"
+        },
+        "database": {
+          "type": "string",
+          "enum": ["postgresql-rds", "planetscale", "supabase"],
+          "description": "Database stack. Maps to stacks/database/"
+        },
+        "infra": {
+          "type": "string",
+          "enum": ["aws-ecs-fargate", "aws-lambda", "cloudflare-workers"],
+          "description": "Infrastructure stack. Maps to stacks/infra/"
+        }
+      }
+    },
+    "infra": {
+      "type": "object",
+      "required": ["domain", "api_subdomain", "region", "scale"],
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 3,
+          "description": "Root domain name (e.g., myapp.com)"
+        },
+        "api_subdomain": {
+          "type": "string",
+          "default": "api",
+          "description": "API subdomain prefix (e.g., 'api' → api.myapp.com)"
+        },
+        "admin_subdomain": {
+          "type": "string",
+          "default": "admin",
+          "description": "Admin panel subdomain prefix (e.g., 'admin' → admin.myapp.com)"
+        },
+        "region": {
+          "type": "string",
+          "default": "us-east-1",
+          "description": "AWS/cloud region for primary deployment"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["mvp", "growth", "enterprise"],
+          "description": "Scale tier — affects instance sizes, redundancy, cost"
+        }
+      }
+    },
+    "approved": {
+      "type": "boolean",
+      "description": "Set to true only after human explicitly confirms the plan. Generation must not start until approved: true."
+    }
+  }
+}

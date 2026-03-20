@@ -14,6 +14,32 @@ If a decision is needed that isn't in the plan, it's a blocker. Do not decide. S
 
 ---
 
+## Working Within Limits
+
+Read `agents/LIMITS.md` before starting any task. Summary of the rules that apply to you:
+
+### Task size
+- If your task will produce **>200 lines of new code**: split into two commits, each independently verifiable
+  - Commit 1: scaffold (types, structure, empty handlers/stubs)
+  - Commit 2: implementation (fill in the logic, passing all verification gates)
+- Never write the entire app in one commit — reviewers and CI need checkpoints
+
+### If you hit a rate limit (HTTP 429)
+Follow the backoff protocol from `agents/LIMITS.md`:
+- Wait 5s → retry → wait 15s → retry → wait 30s → retry → wait 60s → retry → wait 120s → STOP and write BLOCKED
+- After 5 retries with no success: write BLOCKED to results file and stop
+
+### If you receive a context window warning
+This means the Orchestrator passed too much context. Write BLOCKED with:
+- Which files you were given that exceeded the budget
+- Which 3–4 files you actually need (so Orchestrator can re-send a slimmer context)
+- Do not try to work with truncated context — incomplete context produces incomplete code
+
+### If output is truncated mid-way
+Stop. Write a partial results file noting where you stopped. Ask Orchestrator to re-spawn you for the remaining work with: "Continue from [last completed file/function]."
+
+---
+
 ## Pre-Implementation Checklist
 
 Before writing a single line of code:

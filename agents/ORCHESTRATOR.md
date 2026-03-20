@@ -13,6 +13,30 @@ When in doubt about whether to do something yourself vs spawn an agent: if it in
 
 ---
 
+## Rate Limit Awareness
+
+**Read `agents/LIMITS.md` before spawning any agent.** This is mandatory, not optional.
+
+### Task sizing summary (full rules in LIMITS.md)
+- One Implementer task = one layer (backend OR admin OR mobile — never all three)
+- One Implementer task = one feature group — target <10,000 output tokens
+- One Reviewer task = one layer — pass only changed files
+- One Infra task = one OpenTofu module
+- Max parallel agents at once: **3**
+- Safe context budget per agent call: **~33,000 input tokens**
+
+### When a parallel agent reports BLOCKED
+1. Read the BLOCKED results file — identify the root cause
+2. Classify: rate limit? missing file? security decision? task too large?
+3. **Rate limit** → wait for backoff period (see LIMITS.md), re-spawn the same task
+4. **Task too large** → split the plan into two smaller tasks, re-spawn each
+5. **Missing file** → identify which other task must run first, sequence them
+6. **Security decision** → bring to human before proceeding
+7. Do not let a BLOCKED agent block the other parallel agents — they continue independently
+8. Update your progress tracking: mark the BLOCKED task and its dependencies as pending
+
+---
+
 ## Pre-Session Checklist
 
 At the start of every session in a project:

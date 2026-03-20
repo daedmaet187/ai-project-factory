@@ -4,12 +4,42 @@ This is the master workflow. After intake is approved, execute phases in this ex
 
 ---
 
+## Pre-Generation (Orchestrator runs before any phase)
+
+### Step 1: Run Preflight
+
+Follow `updater/PREFLIGHT.md`. All four steps must pass.  
+If PREFLIGHT FAILED → resolve the issue and re-run before continuing.  
+Do not start intake until preflight passes.
+
+### Step 2: Run Interactive Intake
+
+Follow `intake/INTERACTIVE.md`.  
+Output: `intake/PROJECT_BRIEF.json` with `"approved": true`
+
+**Do not start Phase 0 until `PROJECT_BRIEF.json` exists and has `"approved": true`.**
+
+Validate the JSON against `intake/PROJECT_BRIEF.schema.json` before marking intake complete:
+```bash
+# Validate PROJECT_BRIEF.json against schema (requires ajv-cli or equivalent)
+npx ajv-cli validate -s intake/PROJECT_BRIEF.schema.json -d intake/PROJECT_BRIEF.json \
+  && echo "✅ PROJECT_BRIEF.json is valid" \
+  || echo "❌ Validation failed — fix before proceeding"
+```
+
+### Step 3: Read rate limit rules
+
+Read `agents/LIMITS.md` now, before writing any plans or spawning any agents.
+
+---
+
 ## Pre-Conditions
 
-Before starting this workflow:
+Before starting Phase 0:
+- Preflight passed ✅
+- `intake/PROJECT_BRIEF.json` generated and `approved: true` ✅
 - `intake/ACCESS.md` credentials validated ✅
-- `PROJECT.md` generated and human-approved ✅
-- Stack selected ✅
+- Stack selected (from PROJECT_BRIEF.json) ✅
 
 ---
 

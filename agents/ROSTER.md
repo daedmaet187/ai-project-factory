@@ -100,6 +100,25 @@ Do not deviate from the plan. If you encounter a blocker, write BLOCKED status a
 
 ---
 
+## Rate Limits at a Glance
+
+Full details in `agents/LIMITS.md` — read it before spawning.
+
+| Model | Max output/turn | Safe context in | Max parallel |
+|---|---|---|---|
+| Claude Sonnet (Tier 2) | 8,192 tokens | 40,000 tokens | 3 agents |
+| GPT-4o (Tier 2) | 16,384 tokens | 50,000 tokens | 3 agents |
+| GPT-4o-mini (Tier 1) | 16,384 tokens | 50,000 tokens | 3 agents |
+| Gemini Flash (free) | — | 1,000,000 tokens | 1 agent |
+
+**Retry on 429**: exponential backoff — 5s → 15s → 30s → 60s → 120s → BLOCKED  
+**Task sizing**: one layer per Implementer, one module per Infra agent, <10k output tokens  
+**Parallel cap**: never spawn more than 3 agents at once
+
+See `agents/LIMITS.md` for error classification, context window budget, and escalation signals.
+
+---
+
 ## When to Add a New Agent Type
 
 Not every task needs a specialized agent. Before creating a new agent type:

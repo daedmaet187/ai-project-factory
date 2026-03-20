@@ -1,0 +1,132 @@
+name: Factory Update Check
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday 9am UTC
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Initialize report
+        run: |
+          echo "# Factory Stack Version Report" > update_report.md
+          echo "" >> update_report.md
+          echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> update_report.md
+          echo "" >> update_report.md
+
+      - name: Check npm package versions
+        id: npm-check
+        run: |
+          echo "## NPM Package Versions" >> update_report.md
+          echo "" >> update_report.md
+          echo "| Package | Latest |" >> update_report.md
+          echo "|---|---|" >> update_report.md
+          for pkg in \
+            express \
+            zod \
+            react \
+            vite \
+            tailwindcss \
+            "@tanstack/react-query" \
+            react-router-dom \
+            lucide-react \
+            "@tailwindcss/vite" \
+            "@vitejs/plugin-react" \
+            fastify \
+            "@fastify/jwt" \
+            "@fastify/cors"; do
+            version=$(npm view "$pkg" version 2>/dev/null || echo "unknown")
+            echo "| \`$pkg\` | $version |" >> update_report.md
+          done
+          echo "" >> update_report.md
+
+      - name: Check Flutter/Dart package versions
+        id: dart-check
+        run: |
+          echo "## Dart Package Versions" >> update_report.md
+          echo "" >> update_report.md
+          echo "| Package | Latest |" >> update_report.md
+          echo "|---|---|" >> update_report.md
+          for pkg in \
+            flutter_riverpod \
+            riverpod_annotation \
+            go_router \
+            dio \
+            shared_preferences \
+            flutter_animate \
+            fl_chart \
+            flutter_secure_storage \
+            cached_network_image; do
+            version=$(curl -sf "https://pub.dev/api/packages/$pkg" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['latest']['version'])" \
+              2>/dev/null || echo "unknown")
+            echo "| \`$pkg\` | $version |" >> update_report.md
+          done
+          echo "" >> update_report.md
+
+      - name: Check OpenTofu version
+        run: |
+          echo "## Infrastructure" >> update_report.md
+          echo "" >> update_report.md
+          tofu_version=$(curl -sf "https://api.github.com/repos/opentofu/opentofu/releases/latest" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])" \
+            2>/dev/null || echo "unknown")
+          echo "| Tool | Latest |" >> update_report.md
+          echo "|---|---|" >> update_report.md
+          echo "| OpenTofu | $tofu_version |" >> update_report.md
+          echo "" >> update_report.md
+
+      - name: Check security advisories (npm)
+        run: |
+          echo "## Security Notes" >> update_report.md
+          echo "" >> update_report.md
+          # Check a few key packages via OSV.dev
+          for pkg in express zod react; do
+            vuln_count=$(curl -sf "https://api.osv.dev/v1/query" \
+              -H "Content-Type: application/json" \
+              -d "{\"package\": {\"name\": \"$pkg\", \"ecosystem\": \"npm\"}}" \
+              | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('vulns', [])))" \
+              2>/dev/null || echo "?")
+            echo "- \`$pkg\`: $vuln_count advisories on OSV.dev" >> update_report.md
+          done
+          echo "" >> update_report.md
+          echo "> Full audit: run \`npm audit\` in each project layer." >> update_report.md
+
+      - name: Create GitHub Issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -s update_report.md ]; then
+            gh issue create \
+              --title "Weekly: Factory stack version report $(date +%Y-%m-%d)" \
+              --body-file update_report.md \
+              --label "maintenance" \
+              --assignee "@me" \
+              2>/dev/null \
+              || echo "Note: Could not create issue (label may not exist, or no write access). Report content below:" && cat update_report.md
+          fi
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-report-${{ github.run_number }}
+          path: update_report.md
+          retention-days: 90
