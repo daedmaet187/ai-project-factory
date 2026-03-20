@@ -334,6 +334,36 @@ Ansible belongs in stacks that use EC2 instances or bare metal servers. If a pro
 
 ---
 
+## Integration Points — What Gets Generated Where
+
+When an AI agent generates a project, these things must be present in the scaffold. This is the authoritative checklist — not aspirational, not optional.
+
+| What | File | Required |
+|---|---|---|
+| pino logger | `backend/src/config/logger.js` | Always |
+| pino-http middleware | `backend/src/app.js` | Always |
+| Sentry init | `backend/src/config/sentry.js` | Always (graceful if no DSN) |
+| Request ID middleware | `backend/src/middleware/requestId.js` | Always |
+| Sentry error handler | `backend/src/app.js` — before custom errorHandler | Always |
+| Observability module call | `infra/main.tf` | Always |
+| Observability module files | `infra/modules/observability/` | Always |
+| CloudWatch alarm resources | via observability module (7 alarms) | Always |
+| Firebase Crashlytics init | `mobile/lib/main.dart` | If mobile=true |
+| Sentry Flutter init | `mobile/lib/main.dart` | If SENTRY_DSN in ACCESS.md |
+| Perf trace in ApiService | `mobile/lib/services/api_service.dart` | If mobile=true |
+| Sentry release step | `.github/workflows/backend-deploy.yml` | If SENTRY_AUTH_TOKEN present |
+| Health check step | `.github/workflows/backend-deploy.yml` | Always |
+| Rollback step | `.github/workflows/backend-deploy.yml` | Always |
+| Grafana annotation step | `.github/workflows/backend-deploy.yml` | If GRAFANA_API_KEY present |
+
+**Reference files for each layer:**
+- Infra module: [`stacks/observability/infra-module.md`](infra-module.md)
+- Backend scaffold: [`stacks/backend/nodejs-express.md`](../backend/nodejs-express.md)
+- Mobile scaffold: [`stacks/mobile/observability.md`](../mobile/observability.md)
+- CI/CD integration: [`stacks/observability/ci-integration.md`](ci-integration.md)
+
+---
+
 ## New Variables Required
 
 Add to `infra/variables.tf`:

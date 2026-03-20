@@ -45,7 +45,11 @@ src/
     "helmet": "^8.0.0",
     "cors": "^2.8.5",
     "express-rate-limit": "^7.4.0",
-    "@aws-sdk/client-secrets-manager": "^3.0.0"
+    "@aws-sdk/client-secrets-manager": "^3.0.0",
+    "pino": "^9.0.0",
+    "pino-http": "^10.0.0",
+    "@sentry/node": "^8.0.0",
+    "@sentry/profiling-node": "^8.0.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",
@@ -60,6 +64,14 @@ src/
 }
 ```
 
+**Tier 2+ only** — add OTel packages when using Grafana Cloud or Datadog:
+```json
+"@opentelemetry/sdk-node": "^0.57.0",
+"@opentelemetry/auto-instrumentations-node": "^0.57.0",
+"@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
+"@opentelemetry/exporter-metrics-otlp-http": "^0.57.0"
+```
+
 ---
 
 ## app.js — Middleware Order
@@ -71,13 +83,24 @@ Middleware order is critical. Follow this exactly.
 import express from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
+import { pinoHttp } from 'pino-http'
+import * as Sentry from '@sentry/node'
 import { rateLimiter } from './middleware/rateLimiter.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { requestId } from './middleware/requestId.js'
+import { logger } from './config/logger.js'
+import { initSentry } from './config/sentry.js'
 import routes from './routes/index.js'
+
+// Init Sentry before app setup — must be first
+initSentry()
 
 const app = express()
 
-// 1. Security headers — always first
+// 0. Request ID — very first middleware, before everything
+app.use(requestId)
+
+// 1. Security headers
 app.use(helmet())
 
 // 2. CORS — before any route
@@ -85,27 +108,144 @@ app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') ?? [],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id']
 }))
 
-// 3. Rate limiting on all routes
+// 3. HTTP request logging — every request logged with method, url, status, duration
+app.use(pinoHttp({
+  logger,
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${req.url} ${res.statusCode} - ${err.message}`,
+  // Don't log health checks (too noisy)
+  autoLogging: { ignore: (req) => req.url === '/health' },
+  // Include request ID in every log line
+  customProps: (req) => ({ requestId: req.id }),
+}))
+
+// 4. Rate limiting on all routes
 app.use(rateLimiter)
 
-// 4. Body parsing
+// 5. Body parsing
 app.use(express.json({ limit: '10kb' }))
 
-// 5. Health check — before auth so it's always accessible
+// 6. Health check — before auth so it's always accessible
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  res.json({ status: 'ok', version: process.env.APP_VERSION, timestamp: new Date().toISOString() })
 })
 
-// 6. Routes
+// 7. Routes
 app.use('/api', routes)
 
-// 7. Error handler — always last
+// 8. Sentry error handler — MUST be before custom errorHandler
+app.use(Sentry.expressErrorHandler())
+
+// 9. Error handler — always last
 app.use(errorHandler)
 
 export default app
+```
+
+---
+
+## Observability Config Files
+
+Generate these files into every scaffold. They are baked in, not optional.
+
+### `src/config/logger.js`
+
+```javascript
+// src/config/logger.js
+import pino from 'pino'
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  base: {
+    service: process.env.SERVICE_NAME || 'api',
+    env: process.env.NODE_ENV || 'production',
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  // Redact sensitive fields from logs — never log passwords or tokens
+  redact: {
+    paths: ['*.password', '*.token', '*.secret', '*.authorization', 'req.headers.authorization'],
+    censor: '[REDACTED]',
+  },
+})
+```
+
+Usage in controllers and services:
+```javascript
+// Good — structured context first, message last
+logger.info({ requestId: req.id, userId: req.user.id }, 'user.created')
+logger.error({ err, requestId: req.id, userId: req.user.id }, 'user.create.failed')
+
+// Bad — never console.log in production
+console.log('user created')
+```
+
+ECS task definition already has the CloudWatch log driver — JSON logs from pino go directly to CloudWatch Logs and are queryable via CloudWatch Logs Insights.
+
+---
+
+### `src/config/sentry.js`
+
+```javascript
+// src/config/sentry.js
+import * as Sentry from '@sentry/node'
+
+export function initSentry() {
+  if (!process.env.SENTRY_DSN) {
+    // Graceful no-op — don't break the app if Sentry isn't configured
+    console.warn('SENTRY_DSN not set — error tracking disabled')
+    return
+  }
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'production',
+    release: process.env.APP_VERSION,  // set via CI: git SHA or semver
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    profilesSampleRate: 0.1,
+    beforeSend(event) {
+      // Strip PII from error events before sending to Sentry
+      if (event.user) {
+        delete event.user.email
+        delete event.user.ip_address
+      }
+      return event
+    },
+  })
+}
+```
+
+---
+
+### `src/middleware/requestId.js` — Correlation IDs
+
+Correlation IDs allow you to trace a single request across all log lines, even in high-concurrency environments.
+
+```javascript
+// src/middleware/requestId.js
+import { randomUUID } from 'crypto'
+
+export const requestId = (req, res, next) => {
+  // Respect upstream request ID (load balancer, API gateway, mobile client)
+  req.id = req.headers['x-request-id'] || randomUUID()
+  // Echo it back so clients can correlate their logs with server logs
+  res.setHeader('x-request-id', req.id)
+  next()
+}
+```
+
+Pass `req.id` through every logger call in controllers:
+```javascript
+logger.info({ requestId: req.id, userId }, 'habit.created')
+logger.warn({ requestId: req.id, attemptedId }, 'habit.not_found')
+```
+
+This makes CloudWatch Logs Insights queries trivial:
+```
+fields @timestamp, requestId, message, userId
+| filter requestId = "abc-123-..."
+| sort @timestamp asc
 ```
 
 ---
@@ -224,18 +364,21 @@ export const validateQuery = (schema) => (req, res, next) => {
 
 ```javascript
 // src/middleware/errorHandler.js
+import { logger } from '../config/logger.js'
+
 export const errorHandler = (err, req, res, next) => {
-  // Log the full error internally
-  console.error({
-    message: err.message,
-    stack: err.stack,
+  // Log the full error internally with structured context
+  const statusCode = err.statusCode ?? err.status ?? 500
+  const logLevel = statusCode >= 500 ? 'error' : 'warn'
+
+  logger[logLevel]({
+    err,
+    requestId: req.id,
     path: req.path,
     method: req.method,
-    timestamp: new Date().toISOString()
-  })
+  }, err.message)
 
-  // Respond with generic message (never expose internals)
-  const statusCode = err.statusCode ?? err.status ?? 500
+  // Respond with generic message (never expose internals to clients)
   const message = statusCode < 500 ? err.message : 'Internal server error'
 
   res.status(statusCode).json({ error: message })

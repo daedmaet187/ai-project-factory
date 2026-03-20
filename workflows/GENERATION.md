@@ -168,6 +168,15 @@ Type 'apply infra' to proceed.
     
     Writes to: plans/infra-initial.results.md (DONE status)
     Commits: feat(infra): provision AWS infrastructure via OpenTofu
+
+2.7 Deploy observability module
+    - Included in the main tofu apply above (observability is a module in infra/main.tf)
+    - Confirm SNS email subscription was sent to alert_email:
+      aws sns list-subscriptions-by-topic --topic-arn [sns_topic_arn]
+      → Should show PendingConfirmation for the alert email
+    - ⚠️  Human must click the confirmation email before CloudWatch alarms can fire
+    - Note dashboard URL from tofu output:
+      tofu output observability_dashboard_url
 ```
 
 **CHECKPOINT**: Orchestrator verifies:
@@ -301,6 +310,31 @@ Spawn all three simultaneously:
     # Admin panel loads
     curl -s -o /dev/null -w "%{http_code}" https://admin.[domain]/
     # Expected: 200
+
+6.5 Verify observability
+    # All CloudWatch alarms in OK state (not INSUFFICIENT_DATA or ALARM)
+    aws cloudwatch describe-alarms \
+      --alarm-name-prefix [project_name] \
+      --query 'MetricAlarms[*].{Name:AlarmName,State:StateValue}' \
+      --output table
+    # Expected: all alarms show OK
+
+    # CloudTrail is actively logging
+    aws cloudtrail get-trail-status \
+      --name [project_name]-[environment]-trail \
+      --query '{IsLogging:IsLogging,LatestDelivery:LatestDeliveryTime}'
+    # Expected: IsLogging: true
+
+    # Confirm a /health hit generated a structured log entry in CloudWatch
+    aws logs filter-log-events \
+      --log-group-name /ecs/[project_name]-[environment]-api \
+      --filter-pattern '{ $.url = "/health" }' \
+      --limit 1
+    # Expected: JSON log entry with url, statusCode, responseTime fields
+
+    # Verify Sentry project is receiving events (check dashboard manually):
+    # https://sentry.io → [org] → [project] → Issues
+    # Send a test error: curl -X POST https://api.[domain]/api/test-error (if test route exists)
 ```
 
 **CHECKPOINT**: Show human:
@@ -310,6 +344,11 @@ Spawn all three simultaneously:
 ✅ API health: ok
 ✅ Auth endpoint: responding (401 for invalid creds — correct)
 ✅ Admin panel: loading (200)
+✅ CloudWatch alarms: all in OK state ([N] alarms)
+✅ CloudTrail: IsLogging: true
+✅ CloudWatch logs: JSON entries appearing for API requests
+⚠️  Sentry: confirm manually at sentry.io that project is receiving events
+⚠️  SNS alerts: human must click confirmation email ([alert_email]) before alarms fire
 
 All systems green. Proceeding to handoff.
 ```
