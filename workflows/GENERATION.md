@@ -74,7 +74,7 @@ Before starting Phase 0:
       ├── .github/
       │   └── workflows/
       ├── PROJECT.md     ← Copy from approved plan
-      ├── HANDOFF.md     ← Populated in Phase 9
+      ├── HANDOFF.md     ← Populated in Phase 7
       └── .gitignore
 
 0.3 Create .gitignore
@@ -263,6 +263,44 @@ Spawn all three simultaneously:
     If PASS:
     - Proceed to Phase 5
 ```
+
+---
+
+## Phase 4b: Test Suite Generation (Test Agents, Parallel)
+
+*Run Test Agents in parallel after Code Review passes, before migrations.*
+
+```
+4b.1 Orchestrator writes three test plans:
+     - plans/backend-tests.plan.md
+     - plans/admin-tests.plan.md  
+     - plans/mobile-tests.plan.md
+
+     Each plan specifies:
+     - Layer to test (backend/admin/mobile)
+     - Files to read (the implementation from Phase 3)
+     - Coverage targets (80% backend, 70% admin, 60% mobile)
+     - Test framework (Vitest for JS, flutter_test for Dart)
+
+4b.2 Spawn Test Agents in parallel:
+     - Test Agent (backend) → plans/backend-tests.results.md
+     - Test Agent (admin) → plans/admin-tests.results.md
+     - Test Agent (mobile) → plans/mobile-tests.results.md
+
+4b.3 Wait for all three results files
+
+4b.4 Verify all tests pass:
+     cd backend && npm test
+     cd admin && npm test
+     cd mobile && flutter test
+
+4b.5 If any tests fail:
+     - Write fix plan for Implementer
+     - Re-run tests
+     - Repeat until green
+```
+
+**Note**: Test Agents use Codex (best at code generation). See `agents/TEST.md` for the full role card.
 
 ---
 

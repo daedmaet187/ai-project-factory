@@ -7,7 +7,7 @@ Before running intake questions, validate that all provided credentials have suf
 ## Why Deep Validation?
 
 Shallow validation (credential exists) catches typos.
-Deep validation (credential has required permissions) prevents failures at Phase 2 (infra) or Phase 5 (CI/CD).
+Deep validation (credential has required permissions) prevents failures during infrastructure provisioning (Phase 2) or CI/CD verification (Phase 6).
 
 ---
 

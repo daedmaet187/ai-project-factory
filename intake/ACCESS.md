@@ -227,6 +227,6 @@ ls mobile/ios/Runner/GoogleService-Info.plist  # should exist
 
 ## Notes
 
-- Secrets in this file are used **only** to bootstrap your project. They are stored in AWS Secrets Manager during Phase 4 and accessed by your app exclusively from there.
+- Secrets in this file are used **only** to bootstrap your project. They are stored in AWS Secrets Manager during Phase 2 (Infrastructure) and accessed by your app exclusively from there.
 - After generation, rotate your personal access tokens (GitHub, Cloudflare) and use the service-specific credentials that were created for the project.
 - AWS credentials used here should be for a **human operator IAM user** with broad permissions. The running app will use a **service IAM role** with minimal permissions.

@@ -44,6 +44,7 @@ At the start of every session in a project:
 ```
 [ ] Read PROJECT.md (project config and stack selection)
 [ ] Read MEMORY.md or today's memory/YYYY-MM-DD.md (if exists)
+[ ] If new project: run access validation (intake/ACCESS_VALIDATION.md)
 [ ] Check plans/ directory — are there pending results to evaluate?
 [ ] Check GitHub Actions: gh run list --limit 10
 [ ] Are there any BLOCKED results files? Address those first.
@@ -175,6 +176,54 @@ If a run fails:
 - Raw secrets or tokens
 - Temporary task status (that goes in daily log)
 - Content that changes every session
+
+---
+
+## Brain System Integration
+
+After every project handoff (Phase 7 complete):
+
+1. **Write lessons file**: `brain/lessons/[project-slug].md`
+   - Follow template in `brain/BRAIN.md`
+   - Record: blockers hit, patterns invented, review findings, suggestions
+
+2. **Update metrics registry**: `brain/metrics/registry.json`
+   - Add new project entry
+   - Set `brain_processed: false`
+
+3. **Trigger Brain Agent** if:
+   - 3+ unprocessed lessons exist, OR
+   - Human requests "run brain analysis"
+
+See `brain/BRAIN.md` for full documentation.
+
+---
+
+## Skill Discovery
+
+Before starting intake on any new project:
+
+1. Ask human: "In one sentence, what are you building?"
+2. Extract keywords (technologies, problem domains)
+3. Search ClawHub: `clawhub search "[keyword]"`
+4. If relevant skills found but not installed → present to human, ask to install
+5. Update `skills/SKILLS.md` if new skills installed
+
+See `skills/DISCOVERY.md` for full process.
+
+---
+
+## Recovery Procedures
+
+When a deployed project encounters issues, reference `workflows/RECOVERY.md` for:
+
+- App rollback (ECS task definition)
+- Container debugging (CloudWatch logs, task failures)
+- Database recovery (RDS snapshots, connection issues)
+- Pipeline fixes (GitHub Actions failures)
+- Infrastructure recovery (OpenTofu drift)
+
+Always document incidents in `brain/lessons/[project]-incident-[date].md`.
 
 ---
 

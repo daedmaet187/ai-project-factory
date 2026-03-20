@@ -160,11 +160,13 @@ If `tofu apply` would destroy and recreate a resource, **stop**. Write an ADR ex
 
 | Agent | Does | Does NOT |
 |---|---|---|
-| Orchestrator | Plans, coordinates, monitors, writes plans | Write application code, apply infra directly |
+| Orchestrator | Plans, coordinates, monitors, writes plans, manages brain | Write application code, apply infra directly |
 | Implementer | Writes code, follows plans | Make architecture decisions, skip verification |
 | Reviewer | Reviews code, writes REVIEW.md | Edit code, make implementation decisions |
+| Test Agent | Writes test suites after implementation | Implement features, skip coverage targets |
 | Infra Agent | OpenTofu changes only | Touch application code |
 | UI Agent | Design tokens, component scaffolding | Business logic, API integrations |
+| Brain Agent | Extracts patterns, queues improvements | Make implementation decisions |
 
 Role violations cause confusion and inconsistency. If you're in a role and the task requires another role, hand off via the pipeline (see `agents/PIPELINE.md`).
 
