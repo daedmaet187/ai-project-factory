@@ -5,26 +5,81 @@ Every Implementer reads this before starting work.
 
 ---
 
-## Model Rate Limits (as of 2025)
+## Model Capabilities & Selection
 
-### Anthropic Claude (claude-sonnet-4-x / claude-3-7-sonnet)
+### Available Models
 
-| Tier | Requests/min | Input tokens/min | Output tokens/min | Context window |
+| Model | Alias | Context | Max Output | Best For |
 |---|---|---|---|---|
-| Free | 5 | 25,000 | 5,000 | 200k |
-| Pro (personal) | 50 | 80,000 | 16,000 | 200k |
-| API — Tier 1 | 50 | 40,000 | 8,000 | 200k |
-| API — Tier 2 | 1,000 | 80,000 | 16,000 | 200k |
-| API — Tier 3 | 2,000 | 160,000 | 32,000 | 200k |
-| API — Tier 4 | 4,000 | 400,000 | 80,000 | 200k |
+| Claude Opus | `anthropic/claude-opus-4-5` | 200k | 8,192 | Complex reasoning, planning, review, architecture |
+| Claude Sonnet | `anthropic/claude-sonnet-4-6` | **1M** | 8,192 | Large context, bulk analysis, design, documentation |
+| Codex | `openai/gpt-5.3-codex` | 128k | 16,384 | Code generation, precise edits, structured output |
+| GPT-4o | `openai/gpt-4o` | 128k | 16,384 | Alternative to Codex, good at code |
+| Gemini Flash | `google/gemini-flash-lite-latest` | **1M** | — | Cost-efficient, massive context reads |
 
-**Practical limits for this factory (assume Tier 2 unless told otherwise)**:
-- Max output per turn: **8,192 tokens** — use this as your task size upper bound
-- Safe context to pass to a subagent: **40,000 input tokens** (leaves room for output)
-- If a task requires reading >50KB of files: **split into two agent calls**
-- Daily token budget varies by tier; do not spam retries — they burn quota
+### When to Use Each Model
 
-### OpenAI GPT-4o / Codex
+**Claude Opus** — the thinker:
+- Orchestrator planning and coordination
+- Reviewer security audits and code review
+- Debugging complex multi-system issues
+- Any decision requiring nuanced trade-off analysis
+- Architecture decisions, ADR writing
+
+**Claude Sonnet** — the workhorse with big context:
+- UI Agent (large Figma file analysis)
+- Brain Agent (reading many lesson files)
+- Any task requiring >200k context
+- Bulk analysis (reading entire directories)
+- When you need to "see everything at once"
+
+**Codex (gpt-5.3-codex)** — the coder:
+- Implementer work (new files, edits)
+- Test Agent (generating test suites)
+- Infra Agent (OpenTofu HCL)
+- Any task that's "write code following this pattern"
+- Precise, structured output
+
+**Gemini Flash** — the cheap reader:
+- Reading massive codebases for context
+- Simple transformations
+- Fallback when other models rate-limited
+- Low-stakes bulk tasks
+
+### Model Selection by Agent Role
+
+| Agent | Primary Model | When to Switch |
+|---|---|---|
+| Orchestrator | Opus | Sonnet if need to read >200k context |
+| Implementer | Codex | — |
+| Reviewer | Opus | Sonnet if reviewing very large PRs |
+| Test Agent | Codex | — |
+| Infra Agent | Codex | — |
+| UI Agent | Sonnet | Opus if complex design decisions |
+| Brain Agent | Sonnet | Opus for pattern extraction requiring judgment |
+
+---
+
+## Model Rate Limits
+
+### Anthropic Claude (Opus & Sonnet)
+
+| Tier | Requests/min | Input tokens/min | Output tokens/min |
+|---|---|---|---|
+| Free | 5 | 25,000 | 5,000 |
+| Pro (personal) | 50 | 80,000 | 16,000 |
+| API — Tier 1 | 50 | 40,000 | 8,000 |
+| API — Tier 2 | 1,000 | 80,000 | 16,000 |
+| API — Tier 3 | 2,000 | 160,000 | 32,000 |
+| API — Tier 4 | 4,000 | 400,000 | 80,000 |
+
+**Practical limits (assume Tier 2)**:
+- Max output per turn: **8,192 tokens**
+- Safe context for Opus: **~150,000 tokens** (leaves room for output)
+- Safe context for Sonnet: **~800,000 tokens** (1M context, leave buffer)
+- If task exceeds model context → switch model or split task
+
+### OpenAI Codex / GPT-4o
 
 | Tier | Requests/min | Tokens/min | Context window |
 |---|---|---|---|
@@ -35,28 +90,18 @@ Every Implementer reads this before starting work.
 | Tier 4 | 10,000 | 2,000,000 | 128k |
 
 **Practical limits**:
-- Max output per turn: **16,384 tokens**
-- Recommended task size: completable in one turn with **<10,000 output tokens**
-- Context: pass max **50,000 input tokens** per call
+- Max output per turn: **16,384 tokens** (higher than Claude!)
+- Safe context: **~100,000 tokens**
+- Codex excels at code generation — prefer it for Implementer/Test Agent
 
-### OpenAI GPT-4o-mini
-
-| Tier | Requests/min | Tokens/min | Context window |
-|---|---|---|---|
-| Free | 3 | 40,000 | 128k |
-| Tier 1 | 500 | 200,000 | 128k |
-| Tier 2 | 2,000 | 2,000,000 | 128k |
-
-**Use for**: small file edits, simple transforms, low-stakes tasks. Not for code review or planning.
-
-### Google Gemini 2.0 Flash
+### Google Gemini Flash
 
 | Tier | Requests/min | Tokens/min | Context window |
 |---|---|---|---|
 | Free | 15 | 1,000,000 | 1M |
 | Pay-as-you-go | 2,000 | 4,000,000 | 1M |
 
-**Use for**: tasks requiring large context windows (reading entire codebase at once).
+**Use for**: massive context reads, cost-efficient fallback.
 
 ---
 
@@ -151,18 +196,15 @@ When spawning multiple agents simultaneously:
 
 ---
 
-## Model Selection by Task
+## Model Selection Summary
 
-| Task type | Recommended model | Why |
-|---|---|---|
-| Orchestration, planning, coordination | Claude Sonnet | Best reasoning, long context, nuanced decisions |
-| Code implementation (new files, edits) | GPT-4o / Codex | Best at precise code generation and diffs |
-| Code review (security, patterns) | Claude Sonnet | Better at nuanced pattern analysis and risk |
-| Infrastructure (OpenTofu HCL) | GPT-4o | Good at structured config generation |
-| Design token extraction | Claude Sonnet | Better at visual/creative interpretation |
-| Debugging (root cause analysis) | Claude Sonnet | Better at reasoning through unexpected behavior |
-| Simple file edits (<50 lines changed) | GPT-4o-mini | Cost-efficient, fast for small tasks |
-| Large context (reading whole codebase) | Gemini Flash | 1M context window |
+See "Model Capabilities & Selection" at the top of this file for full guidance.
+
+**Quick reference**:
+- **Opus** → Orchestrator, Reviewer (complex reasoning, security analysis)
+- **Sonnet** → UI Agent, Brain Agent, large context tasks (1M window)
+- **Codex** → Implementer, Test Agent, Infra Agent (code generation)
+- **Gemini Flash** → bulk reads, fallback (cost-efficient)
 
 ---
 

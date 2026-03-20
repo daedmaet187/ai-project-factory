@@ -6,15 +6,73 @@ All agents involved in project generation, their roles, when they're spawned, an
 
 ## Agent Types
 
-| Agent | Model | Role | When spawned |
+| Agent | Recommended Model | Role | When spawned |
 |---|---|---|---|
-| **Orchestrator** | Claude (Watson) | Planning, coordination, memory, GitHub ops | Always — root session |
-| **Implementer** | Codex / GPT-4o | Code writing, file edits, execution | For any implementation task |
-| **Reviewer** | Claude | Code review, security audit, pattern validation | After each implementation phase |
-| **Test Agent** | Claude / GPT-4o | Test suite writing for completed implementations | After each Implementer finishes a layer |
-| **Infra Agent** | Codex | OpenTofu-only infrastructure changes | When infra modules need changes |
-| **UI Agent** | Claude | Design token extraction, component scaffolding | When Figma/design provided |
-| **Brain Agent** | Claude | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
+| **Orchestrator** | Claude Opus | Planning, coordination, memory, GitHub ops, complex decisions | Always — root session |
+| **Implementer** | Codex (gpt-5.3-codex) | Code writing, file edits, execution | For any implementation task |
+| **Reviewer** | Claude Opus | Code review, security audit, pattern validation, nuanced analysis | After each implementation phase |
+| **Test Agent** | Codex (gpt-5.3-codex) | Test suite writing for completed implementations | After each Implementer finishes a layer |
+| **Infra Agent** | Codex (gpt-5.3-codex) | OpenTofu-only infrastructure changes | When infra modules need changes |
+| **UI Agent** | Claude Sonnet | Design token extraction, component scaffolding | When Figma/design provided |
+| **Brain Agent** | Claude Sonnet | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
+
+---
+
+## Model Selection Guide
+
+Choose the model based on the task characteristics, not the agent role. These are recommendations, not hard requirements.
+
+### Claude Opus (anthropic/claude-opus-4-5)
+**Best for**: Complex reasoning, architecture decisions, nuanced code review, security analysis, planning
+**Context**: 200k tokens
+**When to use**:
+- Orchestrator work (planning, coordination, complex decisions)
+- Reviewer work (needs to understand subtle bugs, security implications)
+- Any task requiring deep reasoning over trade-offs
+- Debugging complex issues with multiple interacting systems
+
+### Claude Sonnet (anthropic/claude-sonnet-4-6)
+**Best for**: Large context tasks, bulk analysis, design work, documentation
+**Context**: 1M tokens
+**When to use**:
+- UI Agent (design token extraction from large Figma files)
+- Brain Agent (analyzing multiple lesson files at once)
+- Any task requiring reading large portions of the codebase
+- Batch processing (reading all files in a directory, summarizing)
+- When context > 200k tokens is needed
+
+### Codex (openai/gpt-5.3-codex)
+**Best for**: Code generation, precise edits, structured output, infrastructure code
+**Context**: 128k tokens
+**When to use**:
+- Implementer work (writing new code, editing files)
+- Test Agent (generating test suites)
+- Infra Agent (writing OpenTofu HCL)
+- Any task that's primarily "write code following this pattern"
+- Tasks with clear specs where creativity isn't needed
+
+### Gemini Flash (google/gemini-flash-lite-latest)
+**Best for**: Cost-efficient simple tasks, massive context reads
+**Context**: 1M tokens
+**When to use**:
+- Reading entire codebases for context
+- Simple file transformations
+- Low-stakes tasks where cost matters
+- Fallback when other models are rate-limited
+
+### Model Override
+
+Agents can request a different model if the task demands it:
+
+```
+# In the plan file:
+**Suggested model**: Claude Sonnet (task requires reading 15 files totaling ~300k tokens)
+```
+
+The Orchestrator decides the final model based on:
+1. Task requirements (context size, reasoning complexity)
+2. Current rate limits (fallback if primary model is limited)
+3. Cost considerations (Codex for bulk code, Opus for critical decisions)
 
 ---
 
@@ -114,12 +172,13 @@ Do not deviate from the plan. If you encounter a blocker, write BLOCKED status a
 
 Full details in `agents/LIMITS.md` — read it before spawning.
 
-| Model | Max output/turn | Safe context in | Max parallel |
+| Model | Context Window | Max output/turn | Best for |
 |---|---|---|---|
-| Claude Sonnet (Tier 2) | 8,192 tokens | 40,000 tokens | 3 agents |
-| GPT-4o (Tier 2) | 16,384 tokens | 50,000 tokens | 3 agents |
-| GPT-4o-mini (Tier 1) | 16,384 tokens | 50,000 tokens | 3 agents |
-| Gemini Flash (free) | — | 1,000,000 tokens | 1 agent |
+| Claude Opus | 200k | 8,192 tokens | Complex reasoning, planning, review |
+| Claude Sonnet | 1M | 8,192 tokens | Large context, bulk analysis, design |
+| Codex (gpt-5.3-codex) | 128k | 16,384 tokens | Code generation, structured output |
+| GPT-4o | 128k | 16,384 tokens | Alternative to Codex |
+| Gemini Flash | 1M | — | Cost-efficient, massive context |
 
 **Retry on 429**: exponential backoff — 5s → 15s → 30s → 60s → 120s → BLOCKED  
 **Task sizing**: one layer per Implementer, one module per Infra agent, <10k output tokens  
