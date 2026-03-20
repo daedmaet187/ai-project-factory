@@ -13,6 +13,7 @@ All agents involved in project generation, their roles, when they're spawned, an
 | **Reviewer** | Claude | Code review, security audit, pattern validation | After each implementation phase |
 | **Infra Agent** | Codex | OpenTofu-only infrastructure changes | When infra modules need changes |
 | **UI Agent** | Claude | Design token extraction, component scaffolding | When Figma/design provided |
+| **Brain Agent** | Claude | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
 
 ---
 
@@ -130,6 +131,6 @@ Not every task needs a specialized agent. Before creating a new agent type:
 Only add a new agent type if the work is large enough to justify it AND has strict role boundaries that prevent overlap with existing agents.
 
 Current candidates for future agents:
-- **Migration Agent**: Database migration runner (currently handled by Implementer)
 - **Test Agent**: Writes test suites from completed implementations
 - **Security Agent**: Dedicated security scan and penetration test sim
+- **Migration Agent**: Database migration runner (currently handled by Implementer)

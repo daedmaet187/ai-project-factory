@@ -372,6 +372,44 @@ All systems green. Proceeding to handoff.
     Template: templates/HANDOFF.template.md (see below)
 
 7.3 Present HANDOFF.md to human
+
+7.4 Write lessons file
+    - Create brain/lessons/[project-slug].md following brain/BRAIN.md template
+    - Record: blockers hit, patterns invented, review findings, suggestions
+    - Update brain/metrics/registry.json with new project entry
+    - Set brain_processed: false (Brain Agent will process later)
+
+    Template:
+    ```
+    # Lessons: [Project Name]
+
+    **Project**: [name]
+    **Completed**: [ISO date]
+    **Stack**: [list]
+    **Duration**: [hours]
+
+    ## What Went Well
+    - [list]
+
+    ## Blockers Encountered
+    | Blocker | Resolution | Time Lost |
+    |---|---|---|
+
+    ## Patterns Invented
+    (Any new patterns not in existing skills)
+
+    ## Review Findings
+    - CRITICALs found: [N]
+    - WARNINGs deferred: [N]
+
+    ## Suggestions for Factory
+    - [list]
+
+    ## Metrics
+    - Commits: [N]
+    - CI runs to green: [N]
+    - Human interventions: [N]
+    ```
 ```
 
 ---

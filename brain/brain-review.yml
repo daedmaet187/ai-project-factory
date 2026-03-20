@@ -1,0 +1,54 @@
+name: Brain Review
+
+on:
+  schedule:
+    - cron: '0 10 * * 5'  # Every Friday 10am UTC
+  workflow_dispatch:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unprocessed lessons
+        id: check
+        run: |
+          # Count lessons not yet processed
+          unprocessed=$(python3 -c "
+          import json
+          with open('brain/metrics/registry.json') as f:
+            data = json.load(f)
+          count = sum(1 for p in data['projects'] if not p.get('brain_processed', False))
+          print(count)
+          ")
+          echo "unprocessed=$unprocessed" >> $GITHUB_OUTPUT
+
+          if [ "$unprocessed" -gt 0 ]; then
+            echo "Found $unprocessed unprocessed lessons"
+          else
+            echo "No unprocessed lessons"
+          fi
+
+      - name: Create review issue if needed
+        if: steps.check.outputs.unprocessed > 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Brain Review: ${{ steps.check.outputs.unprocessed }} unprocessed lessons" \
+            --body "There are ${{ steps.check.outputs.unprocessed }} project lessons that haven't been processed by the Brain Agent yet.
+
+          ## Action Required
+
+          Run the Brain Agent to:
+          1. Extract patterns from lessons
+          2. Update the pattern library
+          3. Queue factory improvements
+
+          Run manually: Tell Watson \"Run brain analysis on the project factory\"" \
+            --label "maintenance,brain"
