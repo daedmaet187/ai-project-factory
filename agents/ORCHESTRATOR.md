@@ -274,3 +274,43 @@ gh api repos/[owner]/[repo]/branches/main/protection \
 curl -s https://api.example.com/health | jq '.'
 curl -s -o /dev/null -w "%{http_code}" https://api.example.com/health
 ```
+
+---
+
+## ⚠️ Editing the Factory Itself
+
+If you need to modify this factory repo (not a generated project):
+
+**STOP. Read PHILOSOPHY.md principle 11 first.**
+
+This factory is tightly coupled. Files cross-reference each other constantly. A change in one file can break ten others.
+
+**Before any factory edit:**
+1. Scan ALL files — understand the full structure
+2. Search for references to what you're changing
+3. Update ALL affected files, not just the one you intended
+4. Run verification greps after changes
+
+**Checklist for factory modifications:**
+```
+[ ] Read PHILOSOPHY.md principle 11
+[ ] Scanned all files for references to changed items
+[ ] Updated ROSTER.md (if agent-related)
+[ ] Updated GENERATION.md (if workflow-related)
+[ ] Updated PHILOSOPHY.md role table (if agent-related)
+[ ] Updated README.md layout (if file structure changed)
+[ ] Updated this file (ORCHESTRATOR.md) if new systems added
+[ ] Ran grep to verify no stale references remain
+```
+
+**Verification commands:**
+```bash
+# Check for orphaned phase references
+grep -rn "Phase [0-9]" . --include="*.md" | grep -v ".git"
+
+# Check for orphaned agent references
+grep -rn "Agent" . --include="*.md" | grep -v ".git" | head -50
+
+# Verify file count matches README layout
+find . -name "*.md" -not -path "./.git/*" | wc -l
+```

@@ -172,6 +172,52 @@ Role violations cause confusion and inconsistency. If you're in a role and the t
 
 ---
 
+## 11. Factory Edits Require Full Scan
+
+**This factory is a tightly coupled system.** Files reference each other. Phase numbers, agent names, workflow steps, and file paths are cross-referenced across 80+ files. A change in one place can create contradictions in ten others.
+
+**Before editing ANY file in this factory repo:**
+
+1. **Scan all files** — understand what exists and how it connects
+2. **Search for references** — find everywhere the thing you're changing is mentioned
+3. **Update ALL affected files** — not just the one you intended to change
+4. **Verify alignment** — after changes, grep for the old values to confirm nothing was missed
+
+**What counts as a factory edit:**
+- Adding a new agent → update ROSTER.md, PHILOSOPHY.md role table, GENERATION.md, ORCHESTRATOR.md
+- Adding a new phase → update GENERATION.md, any file referencing phase numbers, ROSTER.md parallel diagram
+- Adding a new file → update README.md layout, any index files (SKILLS.md, etc.)
+- Changing a phase number → search and replace across ALL files
+- Renaming anything → find every reference and update it
+
+**Alignment verification commands:**
+```bash
+# After adding a new agent, verify it's documented everywhere:
+grep -rn "Test Agent\|Brain Agent\|[new agent name]" . --include="*.md" | grep -v ".git"
+
+# After changing phase numbers:
+grep -rn "Phase [0-9]" . --include="*.md" | grep -v ".git"
+
+# After adding a new file:
+find . -name "*.md" -not -path "./.git/*" | wc -l  # count files
+# Then verify README.md layout matches reality
+```
+
+**Why this matters**: The factory just had 8 alignment issues fixed because files were added without updating all references. This principle prevents that from happening again.
+
+**Enforcement**: Any PR or commit that adds/changes factory structure must include a checklist:
+```
+[ ] Scanned all files for references to changed items
+[ ] Updated ROSTER.md (if agent-related)
+[ ] Updated GENERATION.md (if workflow-related)
+[ ] Updated PHILOSOPHY.md role table (if agent-related)
+[ ] Updated README.md layout (if file structure changed)
+[ ] Updated ORCHESTRATOR.md (if new systems added)
+[ ] Ran grep to verify no stale references remain
+```
+
+---
+
 ## The Meta-Principle
 
 This factory exists because **AI agents fail when they have too much freedom**. Every constraint in this document is a guard rail that prevents a class of failure. When a principle feels restrictive, that's because it is — and that's the point.

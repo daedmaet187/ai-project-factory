@@ -17,6 +17,22 @@ You give it a brief and credentials. It gives you a deployed, production-ready a
 5. Reviewer agent validates before final commit
 6. Human receives working repo with CI/CD, deployed infrastructure
 
+## ⚠️ Factory Edit Warning
+
+**This factory is a tightly coupled system.** Before editing ANY file:
+
+1. **Scan ALL files first** — understand the full structure
+2. **Search for references** — find everywhere the thing you're changing is mentioned
+3. **Update ALL affected files** — not just the one you intended to change
+
+Adding an agent? Update: ROSTER.md, PHILOSOPHY.md, GENERATION.md, ORCHESTRATOR.md, README.md.
+Adding a phase? Update: GENERATION.md, every file referencing phase numbers.
+Adding a file? Update: README.md layout, any index files.
+
+See `PHILOSOPHY.md` principle 11 for the full checklist.
+
+---
+
 ## Quick Start (For AI Agents)
 
 If you are an AI agent reading this:
@@ -30,6 +46,8 @@ If you are an AI agent reading this:
 7. Execute the workflow in `workflows/GENERATION.md`
 
 Do not skip steps 1–3. Preflight ensures the factory is current. LIMITS.md prevents token waste.
+
+**If editing the factory itself**: Read principle 11 in PHILOSOPHY.md first. Scan all files before making changes.
 
 ## Quick Start (For Humans)
 
