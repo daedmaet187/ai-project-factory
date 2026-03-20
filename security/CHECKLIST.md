@@ -81,6 +81,23 @@ Run the relevant section before each action type. Every checkbox must be address
 
 ---
 
+## Before Going Live — Monitoring
+
+```
+[ ] CloudWatch Logs confirmed flowing (ECS task → log group visible in AWS Console)
+[ ] At least one alarm configured for 5xx error rate
+[ ] Alert email set and SNS subscription confirmed (check email for confirmation link)
+[ ] Sentry DSN configured in ECS task definition (secrets field, not environment)
+[ ] Sentry DSN configured in mobile app (Flutter)
+[ ] Firebase Crashlytics enabled and test crash verified (crash appears in Firebase Console)
+[ ] CloudTrail enabled and logging to S3
+[ ] RDS Performance Insights enabled (performance_insights_enabled = true in OpenTofu)
+```
+
+→ See `stacks/observability/OBSERVABILITY.md` for tier selection and full setup guides.
+
+---
+
 ## Authentication Security
 
 ```

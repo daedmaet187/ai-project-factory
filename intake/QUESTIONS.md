@@ -268,6 +268,25 @@ Each question includes full context so the agent knows why it's asking and what 
 
 ---
 
+### Q-INF-020: What monitoring tier do you want?
+**Category**: Infra
+**Required**: No
+**Default**: Tier 1 (free, CloudWatch + Sentry free + Firebase)
+**Options**: Tier 1 (MVP/free) / Tier 2 (Grafana Cloud ~$30/month) / Tier 3 (Datadog $46+/host/month)
+**Why asked**: Sets up the right observability stack from day one
+**Impact**: Determines which monitoring infrastructure gets generated. Tier 1 → CloudWatch alarms + Sentry free + Firebase Crashlytics. Tier 2 → adds Grafana Cloud LGTM stack + OTel tracing. Tier 3 → Datadog full platform.
+
+---
+
+### Q-INF-021: Alert email address?
+**Category**: Infra
+**Required**: Yes
+**Default**: None
+**Why asked**: CloudWatch alarms need an SNS subscription email to notify on incidents
+**Impact**: Populates `alert_email` variable in OpenTofu. Used for 5xx rate alarms, CPU alarms, and RDS storage alarms.
+
+---
+
 ### Q-043: Do you want a staging environment?
 **Category**: Infra  
 **Required**: No  

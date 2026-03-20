@@ -26,6 +26,11 @@ Use the decision matrix below to auto-recommend a stack based on intake answers.
 | Real-time features (chat, notifications, live data) | Node.js/Express + Socket.io + Redis |
 | Python-first team | Python/FastAPI backend |
 | Heavy background jobs / workers | ECS Fargate (separate task definition) |
+| Need crash reports for mobile | Firebase Crashlytics (free) |
+| Need unified errors across API + mobile | Sentry |
+| Need traces and dashboards | Grafana Cloud (free tier) |
+| Need audit trail (who did what) | AWS CloudTrail |
+| Need enterprise full-platform observability | Datadog ($46+/host) |
 
 ---
 
@@ -49,6 +54,7 @@ Best for: Consumer apps with mobile + web admin panel + backend API
 | **Infra as code** | OpenTofu |
 | **CI/CD** | GitHub Actions |
 | **Secrets** | AWS Secrets Manager |
+| **Observability** | Tier 1: CloudWatch + Sentry free + Firebase Crashlytics; Tier 2: + Grafana Cloud |
 
 Stack guides:
 - Backend: `stacks/backend/nodejs-express.md`
@@ -56,6 +62,7 @@ Stack guides:
 - Mobile: `stacks/mobile/flutter-riverpod.md`
 - Infra: `stacks/infra/aws-ecs-fargate.md`
 - Database: `stacks/database/postgresql-rds.md`
+- Observability: `stacks/observability/OBSERVABILITY.md`
 
 ---
 
@@ -73,12 +80,14 @@ Best for: SaaS products that are entirely web-based, no mobile app needed
 | **CDN/DNS** | Cloudflare |
 | **Infra** | OpenTofu |
 | **CI/CD** | GitHub Actions |
+| **Observability** | Tier 1: CloudWatch + Sentry free + Firebase Crashlytics; Tier 2: + Grafana Cloud |
 
 Stack guides:
 - Frontend: `stacks/frontend/nextjs.md`
 - Backend: `stacks/backend/nodejs-express.md`
 - Database: `stacks/database/postgresql-rds.md`
 - Infra: `stacks/infra/aws-ecs-fargate.md`
+- Observability: `stacks/observability/OBSERVABILITY.md`
 
 ---
 
@@ -94,10 +103,12 @@ Best for: APIs and frontends where latency matters globally; low-ops overhead; l
 | **Infra** | Cloudflare Wrangler CLI + OpenTofu for Cloudflare resources |
 | **CI/CD** | GitHub Actions + Wrangler deploy |
 | **Secrets** | Cloudflare Workers Secrets |
+| **Observability** | Tier 1: Cloudflare Analytics + Sentry free; Tier 2: + Grafana Cloud |
 
 Stack guides:
 - Backend: `stacks/infra/cloudflare-workers.md`
 - Database: `stacks/database/supabase.md`
+- Observability: `stacks/observability/OBSERVABILITY.md`
 
 ---
 

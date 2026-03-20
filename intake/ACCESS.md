@@ -167,6 +167,64 @@ APNS_AUTH_KEY_P8:    (base64-encoded .p8 key from Apple Developer)
 
 ---
 
+## Monitoring Services
+
+### Sentry (recommended for all tiers)
+```
+SENTRY_DSN: (from sentry.io → Your Project → Settings → Client Keys → DSN)
+SENTRY_ORG: (your Sentry organization slug — visible in the URL: sentry.io/organizations/YOUR_ORG/)
+```
+
+**How to create a Sentry project**:
+1. sentry.io → New Project → Node.js
+2. Copy the DSN from the setup page
+3. Add `SENTRY_DSN` to AWS Secrets Manager (not as plaintext ECS env var)
+
+**Validation**:
+```bash
+# DSN format check — should look like:
+# https://abc123@o456789.ingest.sentry.io/123456
+echo $SENTRY_DSN | grep -E "^https://[a-f0-9]+@o[0-9]+\.ingest\.sentry\.io/[0-9]+"
+```
+
+---
+
+### Grafana Cloud (Tier 2+ only)
+```
+GRAFANA_INSTANCE_ID:    (numeric ID — Grafana Cloud → My Account → Stack details)
+GRAFANA_CLOUD_API_KEY:  (Grafana Cloud → My Account → API Keys → Create, role: MetricsPublisher)
+GRAFANA_LOKI_URL:       (Grafana Cloud → Connections → Data sources → Loki → Connection URL)
+GRAFANA_TEMPO_URL:      (Grafana Cloud → Connections → Data sources → Tempo → Connection URL)
+GRAFANA_PROMETHEUS_URL: (Grafana Cloud → Connections → Data sources → Prometheus → Connection URL)
+```
+
+**Validation**:
+```bash
+# Check Prometheus remote write endpoint
+curl -s -u "${GRAFANA_INSTANCE_ID}:${GRAFANA_CLOUD_API_KEY}" \
+  "${GRAFANA_PROMETHEUS_URL}/api/v1/labels" | jq '.status'
+# Expected: "success"
+```
+
+---
+
+### Firebase (for mobile crash reporting)
+```
+FIREBASE_PROJECT_ID: (from Firebase Console → Project settings → General → Project ID)
+```
+
+**Note**: `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) are downloaded from Firebase Console and added directly to `mobile/android/app/` and `mobile/ios/Runner/`. These files are not secret but should not be committed publicly for production apps (add to `.gitignore` or use Firebase App Distribution for CI).
+
+**Validation**:
+```bash
+# After FlutterFire configure runs:
+ls mobile/lib/firebase_options.dart  # should exist
+ls mobile/android/app/google-services.json  # should exist
+ls mobile/ios/Runner/GoogleService-Info.plist  # should exist
+```
+
+---
+
 ## Notes
 
 - Secrets in this file are used **only** to bootstrap your project. They are stored in AWS Secrets Manager during Phase 4 and accessed by your app exclusively from there.
