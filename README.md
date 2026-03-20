@@ -45,7 +45,7 @@ The intake is now conversational: the agent asks 3–4 questions at a time, summ
 ## What Gets Generated
 
 - **Backend API**: Node.js/Express 5 (or Fastify/FastAPI) — containerized on ECS Fargate
-- **Admin panel**: React 19 + Vite + TailwindCSS 4 + shadcn/ui — deployed on Cloudflare Pages
+- **Admin panel**: React 19 + Vite + TailwindCSS 4 + shadcn/ui — deployed on AWS S3 + CloudFront (within AWS stack) or Cloudflare Pages (within Cloudflare/Edge stack)
 - **Mobile app**: Flutter + Riverpod + go_router — ready for iOS/Android distribution
 - **Infrastructure**: PostgreSQL on RDS, ECS Fargate, ECR, ALB, CloudFront, all via OpenTofu
 - **CI/CD**: GitHub Actions for all layers — build, test, deploy on push

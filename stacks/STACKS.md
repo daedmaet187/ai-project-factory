@@ -45,7 +45,7 @@ Best for: Consumer apps with mobile + web admin panel + backend API
 | **Compute** | AWS ECS Fargate |
 | **Load balancer** | AWS ALB |
 | **CDN/DNS** | Cloudflare |
-| **Admin deploy** | Cloudflare Pages |
+| **Admin deploy** | AWS S3 + CloudFront |
 | **Infra as code** | OpenTofu |
 | **CI/CD** | GitHub Actions |
 | **Secrets** | AWS Secrets Manager |
@@ -69,7 +69,7 @@ Best for: SaaS products that are entirely web-based, no mobile app needed
 | **Backend API** | Next.js API Routes or separate Node.js/Express |
 | **UI** | TailwindCSS 4 + shadcn/ui |
 | **Database** | PostgreSQL 16 on AWS RDS |
-| **Compute** | ECS Fargate (for API) + Cloudflare Pages (for Next.js static/SSR) |
+| **Compute** | ECS Fargate (API) + S3 + CloudFront (admin/frontend) |
 | **CDN/DNS** | Cloudflare |
 | **Infra** | OpenTofu |
 | **CI/CD** | GitHub Actions |
@@ -101,22 +101,39 @@ Stack guides:
 
 ---
 
+## Hosting Coherence Rule
+
+Static frontends (admin SPA, marketing site) belong on the same CDN/cloud as your compute. Mixing creates egress costs and operational complexity.
+
+| Backend on | Admin SPA should be on | Why |
+|---|---|---|
+| AWS (ECS/Lambda) | S3 + CloudFront | Same IAM, same VPC egress, zero cross-cloud transfer cost |
+| Cloudflare Workers | Cloudflare Pages | Same platform, zero config, instant deploys |
+| GCP Cloud Run | Cloud Storage + Cloud CDN | Same billing, integrated IAM |
+| Vercel | Vercel (static export) | Same deployment pipeline |
+
+**Exception**: If you want Cloudflare's DDoS protection/WAF in front of an AWS-hosted admin, put Cloudflare as DNS-only (orange cloud off) proxying to CloudFront — don't use Cloudflare Pages for the hosting itself.
+
+---
+
 ## Layer Catalog
 
 ### Backend Options
 
 | Option | File | Best when |
 |---|---|---|
-| Node.js + Express 5 | `stacks/backend/nodejs-express.md` | Default — most patterns, largest ecosystem |
-| Node.js + Fastify | `stacks/backend/nodejs-fastify.md` | High-throughput API, schema-first development |
-| Python + FastAPI | `stacks/backend/python-fastapi.md` | Team prefers Python, ML integration needed |
+| Node.js + Express 5 | `stacks/backend/nodejs-express.md` | Default for teams with existing Express knowledge; largest ecosystem |
+| Node.js + Fastify | `stacks/backend/nodejs-fastify.md` | High-throughput API, schema-first, JSON Schema validation baked in |
+| Hono | `stacks/backend/hono.md` | Edge deployment needed; runtime portability (Node/Bun/Deno/CF Workers); ultra-light |
+| Python + FastAPI | `stacks/backend/python-fastapi.md` | Team prefers Python, ML integration, async-first |
 
 ### Frontend Options
 
 | Option | File | Best when |
 |---|---|---|
-| React + Vite + shadcn/ui | `stacks/frontend/react-shadcn.md` | Admin panels, dashboards, SPA |
-| Next.js 15 App Router | `stacks/frontend/nextjs.md` | SEO matters, marketing + app in same repo |
+| React + Vite + TanStack Router + shadcn/ui | `stacks/frontend/react-shadcn.md` | **Default** — admin panels, dashboards, SPAs. Type-safe routing, client-heavy apps |
+| Next.js 15 App Router | `stacks/frontend/nextjs.md` | SEO matters, marketing + app in same repo, SSR needed |
+| React + Vite + React Router 7 | (existing pattern) | When team already knows React Router, migration path from existing RR app |
 | Vue + Nuxt | `stacks/frontend/vue-nuxt.md` | Team prefers Vue |
 
 ### Mobile Options
