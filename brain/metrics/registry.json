@@ -1,9 +1,24 @@
 {
-  "projects": [],
+  "projects": [
+    {
+      "slug": "sara-artelier",
+      "name": "Sara Artelier Order System",
+      "repo": "daedmaet187/sara-artelier",
+      "completed": "2026-03-22",
+      "stack": ["Node.js/Express", "React/Vite/shadcn", "PostgreSQL/RDS", "ECS Fargate", "CloudFront", "Cloudflare DNS"],
+      "duration_hours": 12,
+      "criticals_found": 6,
+      "criticals_fixed": 6,
+      "warnings_deferred": 11,
+      "ci_runs_to_green": 8,
+      "human_interventions": 4,
+      "brain_processed": false
+    }
+  ],
   "totals": {
-    "projects_completed": 0,
-    "avg_duration_hours": 0,
-    "avg_criticals": 0,
+    "projects_completed": 1,
+    "avg_duration_hours": 12,
+    "avg_criticals": 6,
     "patterns_extracted": 0,
     "skills_created": 0
   },
