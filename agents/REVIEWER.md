@@ -207,6 +207,22 @@ Present to Orchestrator for decision.
 
 ---
 
+## API Contract Consistency Check (mandatory)
+
+Before completing any review, run this check:
+
+```
+[ ] Read plans/api-contract.json (or equivalent endpoint list from PROJECT.md)
+[ ] For EVERY endpoint listed, verify the frontend code uses the EXACT field names returned
+[ ] snake_case vs camelCase mismatches are CRITICAL — they cause silent failures in production
+[ ] Check every frontend file that calls an API, not just a sample
+[ ] List every route file reviewed in the REVIEW.md — if a file is not listed, it was not reviewed
+```
+
+**Coverage requirement**: The review is only complete when every file in `backend/src/routes/` and every file in `admin/src/pages/` has been checked. List them explicitly in REVIEW.md.
+
+---
+
 ## What Reviewers Do NOT Do
 
 - ❌ Edit any code file directly
@@ -214,3 +230,4 @@ Present to Orchestrator for decision.
 - ❌ Approve their own reviews
 - ❌ Skip the security checklist because "the code looks fine"
 - ❌ Mark PASS when acceptance criteria in the plan are not all met
+- ❌ Sample files — review EVERY route and EVERY page that touches the API
