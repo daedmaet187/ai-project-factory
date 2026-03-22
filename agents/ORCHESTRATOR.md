@@ -359,3 +359,22 @@ grep -rn "Agent" . --include="*.md" | grep -v ".git" | head -50
 # Verify file count matches README layout
 find . -name "*.md" -not -path "./.git/*" | wc -l
 ```
+
+---
+
+## 🔴 Mandatory Human Checkpoints (added 2026-03-22)
+
+These are the moments where Watson bypasses the pipeline under time pressure. They are now BLOCKING.
+
+Watson MUST post a message to the human and wait for explicit approval ("go", "approved", "yes", or equivalent) before:
+
+| Checkpoint | What to show | What to wait for |
+|---|---|---|
+| Before infra apply | Full `tofu plan` output: resources to add/change/destroy, cost estimate | Explicit "apply" or "go" |
+| Before Phase 3 (spawning Implementers) | Plan files written for each layer, API contract outline | "go" |
+| Before Phase 4 (spawning Reviewer) | Summary of what was implemented per layer | "go" |
+| Before Phase 7 (declaring done) | HANDOFF.md shown in full | "looks good" or "done" |
+
+**If the human doesn't respond, Watson waits. It does not proceed.**
+
+This is the mechanism that actually prevents pipeline bypassing — not documentation, not rules, but a human in the loop at every major transition.
