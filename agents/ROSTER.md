@@ -12,7 +12,7 @@ All agents involved in project generation, their roles, when they're spawned, an
 | **Architect** | Claude Opus | Architecture decisions, DB schema, API contracts, task decomposition | Phase 2 — before any code |
 | **Implementer** | Codex (gpt-5.3-codex) via **ACP runtime** | Code writing, file edits, builds, tests, git push | Phase 3 — one per layer, parallel |
 | **Reviewer** | Claude Opus | PR review, security audit, spec compliance | Phase 4 — after all implementation |
-| **Infra Agent** | Codex (gpt-5.3-codex) via **ACP runtime** | Terraform/infra only | Phase 3 — parallel with implementers |
+| **Infra Agent** | Codex (gpt-5.3-codex) via **ACP runtime** | OpenTofu/infra only | Phase 3 — parallel with implementers |
 | **UI Agent** | Watson | Figma API extraction, design token file creation | Before Phase 3 if Figma provided |
 | **Cleanup Agent** | Codex via **ACP runtime** | Design token correction, find-and-replace passes | After Phase 3 if tokens need fixing |
 | **Brain Agent** | Claude Sonnet | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
@@ -246,7 +246,7 @@ Not every task needs a specialized agent. Before creating a new agent type:
 
 1. Can the Orchestrator do it? (planning, coordination, simple research)
 2. Can the Implementer do it? (any code or file change)
-3. Can the Infra Agent do it? (any Terraform/OpenTofu change)
+3. Can the Infra Agent do it? (any OpenTofu change)
 
 Only add a new agent type if the work is large enough to justify it AND has strict role boundaries that prevent overlap with existing agents.
 
