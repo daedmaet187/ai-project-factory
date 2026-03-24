@@ -8,7 +8,7 @@ All agents involved in project generation, their roles, when they're spawned, an
 
 | Agent | Recommended Model | Role | When spawned |
 |---|---|---|---|
-| **Orchestrator** | Watson (Claude Sonnet) | Planning, coordination, memory, GitHub ops, checkpoints | Always — root session |
+| **Orchestrator** | Claude Opus | Planning, coordination, memory, GitHub ops, checkpoints | Always — root session |
 | **Architect** | Claude Opus | Architecture decisions, DB schema, API contracts, task decomposition | Phase 2 — before any code |
 | **Implementer** | Codex (gpt-5.3-codex) via **ACP runtime** | Code writing, file edits, builds, tests, git push | Phase 3 — one per layer, parallel |
 | **Reviewer** | Claude Opus | PR review, security audit, spec compliance | Phase 4 — after all implementation |
