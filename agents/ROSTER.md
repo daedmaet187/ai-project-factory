@@ -8,13 +8,44 @@ All agents involved in project generation, their roles, when they're spawned, an
 
 | Agent | Recommended Model | Role | When spawned |
 |---|---|---|---|
-| **Orchestrator** | Claude Opus | Planning, coordination, memory, GitHub ops, complex decisions | Always — root session |
-| **Implementer** | Codex (gpt-5.3-codex) | Code writing, file edits, execution | For any implementation task |
-| **Reviewer** | Claude Opus | Code review, security audit, pattern validation, nuanced analysis | After each implementation phase |
-| **Test Agent** | Codex (gpt-5.3-codex) | Test suite writing for completed implementations | After each Implementer finishes a layer |
-| **Infra Agent** | Codex (gpt-5.3-codex) | OpenTofu-only infrastructure changes | When infra modules need changes |
-| **UI Agent** | Claude Sonnet | Design token extraction, component scaffolding | When Figma/design provided |
+| **Orchestrator** | Watson (Claude Sonnet) | Planning, coordination, memory, GitHub ops, checkpoints | Always — root session |
+| **Architect** | Claude Opus | Architecture decisions, DB schema, API contracts, task decomposition | Phase 2 — before any code |
+| **Implementer** | Codex (gpt-5.3-codex) via **ACP runtime** | Code writing, file edits, builds, tests, git push | Phase 3 — one per layer, parallel |
+| **Reviewer** | Claude Opus | PR review, security audit, spec compliance | Phase 4 — after all implementation |
+| **Infra Agent** | Codex (gpt-5.3-codex) via **ACP runtime** | Terraform/infra only | Phase 3 — parallel with implementers |
+| **UI Agent** | Watson | Figma API extraction, design token file creation | Before Phase 3 if Figma provided |
+| **Cleanup Agent** | Codex via **ACP runtime** | Design token correction, find-and-replace passes | After Phase 3 if tokens need fixing |
 | **Brain Agent** | Claude Sonnet | Pattern extraction, lesson analysis, improvement queuing | On-demand or after N projects |
+
+## ⚠️ CRITICAL: Codex Must Use ACP Runtime
+
+**Codex via `subagent` runtime = LLM only. No file system access. Will NOT write files to disk.**
+
+Always spawn Codex with:
+```json
+{ "runtime": "acp", "agentId": "codex" }
+```
+
+### ACP Prerequisites (must be configured once per machine):
+```bash
+openclaw plugins install acpx
+openclaw config set plugins.entries.acpx.enabled true
+openclaw config set acp.enabled true
+openclaw config set acp.backend acpx
+openclaw config set acp.defaultAgent codex
+openclaw config set acp.allowedAgents '["codex","claude"]'
+openclaw config set plugins.entries.acpx.config.permissionMode approve-all
+openclaw config set plugins.entries.acpx.config.nonInteractivePermissions fail
+npm install -g @openai/codex
+# Set OPENAI_API_KEY in ~/.zshrc
+openclaw gateway restart
+```
+
+### Smoke test before spawning:
+```
+sessions_spawn({ task: "Reply with exactly: ACP-CODEX-OK", runtime: "acp", agentId: "codex", mode: "run" })
+```
+Expected: response contains `ACP-CODEX-OK`
 
 ---
 
@@ -91,34 +122,55 @@ UI Agent      → Design system only, no business logic
 
 ---
 
-## Parallel Execution Model
-
-Independent layers are always parallelized. The Orchestrator spawns them simultaneously.
+## Pipeline Phases (Mandatory)
 
 ```
-Orchestrator
+Phase 1 — Watson
+  → Gather requirements, write BRIEF.md
+  → CHECKPOINT: confirm brief with human before proceeding
+
+Phase 2 — Opus (Architect)
+  → Read brief → produce ARCHITECTURE.md, DB_SCHEMA.md, API_CONTRACTS.md,
+    TASKS_*.md per layer, SECURITY.md, OPUS_DONE.md
+  → CHECKPOINT: show Opus decisions + open questions to human, get answers
+
+Phase 3 — Codex via ACP (Implementers, parallel)
+  → One agent per layer: backend, admin, pwa, mobile, infra
+  → Each reads plan files, implements, runs tests, commits, pushes
+  → CHECKPOINT: show phase 3 results to human before spawning Opus review
+
+Phase 4 — Opus (Reviewer)
+  → Reads all committed code + plan files
+  → Reviews: correctness, security, spec compliance, design tokens
+  → Writes REVIEW.md with findings
+  → CHECKPOINT: present findings to human, get go/fix decision
+
+Phase 5 — Watson
+  → GitHub ops: branch protection, secrets docs, HANDOFF.md
+  → CHECKPOINT: explicit sign-off before declaring done
+```
+
+## Parallel Execution Model
+
+```
+Watson (Orchestrator)
     │
-    ├── [Phase 2] UI Agent (design tokens) ─────────────────────────┐
-    │                                                                 │ blocks
-    ├── [Phase 4] Infra Agent (tofu apply) ────────────────────────┐ │
-    │                                                                │ │
-    │   AFTER Phase 2 and 4 complete:                               ▼ ▼
+    ├── [Phase 2] Opus (Architect) — sequential, produces all plan files
     │
-    ├── [Phase 5, parallel]:
-    │   ├── spawns → Implementer (backend)   ─┐
-    │   ├── spawns → Implementer (admin)      ├── all three in parallel
-    │   └── spawns → Implementer (mobile)    ─┘
+    │   AFTER Phase 2 + human checkpoint:
     │
-    │   AFTER all Phase 5 complete:
+    ├── [Phase 3, parallel — ALL via ACP runtime]:
+    │   ├── Codex (backend)   ─┐
+    │   ├── Codex (admin)      ├── all in parallel
+    │   ├── Codex (pwa)        │
+    │   ├── Codex (mobile)     │
+    │   └── Codex (infra)     ─┘
     │
-    ├── [Phase 5b, parallel]:
-    │   ├── spawns → Test Agent (backend tests)   ─┐
-    │   ├── spawns → Test Agent (admin tests)      ├── all three in parallel
-    │   └── spawns → Test Agent (mobile tests)    ─┘
+    │   AFTER all Phase 3 complete + human checkpoint:
     │
-    │   AFTER all Phase 5b complete:
+    ├── [Phase 4] Opus (Reviewer) — sequential, reviews all layers
     │
-    └── [Phase 6] Reviewer Agent ──────────────────────────────────────►
+    └── [Phase 5] Watson — GitHub ops, HANDOFF.md
 ```
 
 **What can run in parallel**: Backend + admin + mobile implementation  
