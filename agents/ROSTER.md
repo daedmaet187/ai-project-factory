@@ -124,30 +124,64 @@ UI Agent      → Design system only, no business logic
 
 ## Pipeline Phases (Mandatory)
 
-```
-Phase 1 — Watson
-  → Gather requirements, write BRIEF.md
-  → CHECKPOINT: confirm brief with human before proceeding
+Full workflow details in `workflows/GENERATION.md`. Summary:
 
-Phase 2 — Opus (Architect)
-  → Read brief → produce ARCHITECTURE.md, DB_SCHEMA.md, API_CONTRACTS.md,
-    TASKS_*.md per layer, SECURITY.md, OPUS_DONE.md
-  → CHECKPOINT: show Opus decisions + open questions to human, get answers
+```
+Pre-Generation — Watson (Orchestrator)
+  → Step 0: Validate access credentials (intake/ACCESS_VALIDATION.md)
+  → Step 1: Run preflight (updater/PREFLIGHT.md)
+  → Step 2: Run interactive intake (intake/INTERACTIVE.md) → PROJECT_BRIEF.json
+  → Step 3: Read rate limit rules (agents/LIMITS.md)
+  → CHECKPOINT: PROJECT_BRIEF.json approved: true before Phase 0
+
+Phase 0 — Watson (Orchestrator)
+  → Create GitHub repo, initialize structure, set branch protection
+  → Set GitHub Secrets + Variables
+  → Initial commit (empty structure + .gitignore)
+  → CHECKPOINT: confirm repo URL with human
+
+Phase 1 — Watson (UI Agent role, Claude Sonnet)
+  → If Figma provided: extract design tokens via Figma API
+  → If no Figma: generate palette from style description
+  → Outputs: design-tokens.json, admin/src/index.css, mobile theme files
+  → CHECKPOINT: show color palette + typography, human confirms before continuing
+
+Phase 2 — Codex via ACP (Infra Agent)
+  → Write OpenTofu modules (networking, compute, database, secrets, dns)
+  → Run tofu validate + tofu plan
+  → CHECKPOINT: show plan output + cost estimate, wait for human "apply infra"
+  → On approval: tofu apply, capture outputs (ECR_URL, ALB_DNS, RDS_ENDPOINT)
 
 Phase 3 — Codex via ACP (Implementers, parallel)
-  → One agent per layer: backend, admin, pwa, mobile, infra
-  → Each reads plan files, implements, runs tests, commits, pushes
-  → CHECKPOINT: show phase 3 results to human before spawning Opus review
+  → One agent per layer: backend, admin, mobile
+  → Each reads its plan file, implements, runs tests, commits, pushes
+  → CHECKPOINT: show phase 3 results to human before spawning Reviewer
 
 Phase 4 — Opus (Reviewer)
   → Reads all committed code + plan files
   → Reviews: correctness, security, spec compliance, design tokens
-  → Writes REVIEW.md with findings
+  → Writes REVIEW.md with findings (CRITICAL / WARNING / NOTE)
   → CHECKPOINT: present findings to human, get go/fix decision
 
-Phase 5 — Watson
-  → GitHub ops: branch protection, secrets docs, HANDOFF.md
-  → CHECKPOINT: explicit sign-off before declaring done
+Phase 4b — Codex via ACP (Test Agents, parallel)
+  → One Test Agent per layer (backend, admin, mobile)
+  → Coverage targets: 80% backend, 70% admin, 60% mobile
+  → All tests must pass green before Phase 5
+
+Phase 5 — Implementer + Watson
+  → Run database migrations via Secrets Manager DATABASE_URL
+  → Verify schema (expected tables present)
+
+Phase 6 — Watson (Orchestrator)
+  → Trigger all CI/CD workflows, monitor until green
+  → Verify live endpoints (API health, auth, admin panel)
+  → Verify observability (CloudWatch alarms OK, CloudTrail logging)
+
+Phase 7 — Watson (Orchestrator)
+  → Create first admin user, store credentials in Secrets Manager
+  → Write HANDOFF.md (full), write lessons file to brain/lessons/
+  → Update brain/metrics/registry.json
+  → CHECKPOINT: present HANDOFF.md to human, wait for explicit sign-off
 ```
 
 ## Parallel Execution Model

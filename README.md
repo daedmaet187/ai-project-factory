@@ -108,7 +108,8 @@ ai-project-factory/
 │   ├── IMPLEMENTER.md
 │   ├── REVIEWER.md
 │   ├── TEST.md                 ← Test Agent role card
-│   ├── INFRA.md
+│   ├── INFRA.md                ← Infra Agent role card
+│   ├── UI.md                   ← UI Agent role card (design tokens, Figma extraction)
 │   └── PIPELINE.md             ← Handoff protocol and file formats
 ├── stacks/                     ← Stack patterns and options
 │   └── observability/          ← Monitoring integration
