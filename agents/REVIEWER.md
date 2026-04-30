@@ -82,6 +82,37 @@ Not a full performance audit, but catch obvious issues.
 [ ] Large data sets paginated?
 ```
 
+### 5. API/Frontend Contract Review
+Verify backend responses match frontend expectations exactly.
+
+```
+[ ] All API response field names match frontend TypeScript interfaces?
+    - Watch for: user vs resident, adminNote vs notes, assignments vs residents
+[ ] All enum values are lowercase in API responses?
+    - Backend MUST call .toLowerCase() before returning status/type/category enums
+    - Check for: IN_PROGRESS vs in_progress, MONTHLY_FEE vs monthly_fee
+[ ] All table cell renderers use optional chaining (?.)?
+    - Pattern: row.original.field?.subfield ?? '—'
+    - Crash risk: row.original.resident.name when resident is null
+[ ] Pagination responses use consistent shape?
+    - Required: { data, total, page, limit, totalPages }
+    - Watch for: some endpoints returning raw arrays
+[ ] /auth/me returns all data needed for app initialization?
+    - Should include: user + related entities (units, permissions, settings)
+[ ] File uploads store URLs, not local paths?
+    - Must use presigned URL pattern, store S3/CDN URL
+    - Watch for: local paths like /data/user/0/... stored in DB
+[ ] Auth token only cleared on 401?
+    - Network errors should NOT trigger logout
+[ ] NestJS routes in correct order?
+    - Specific routes (stats, summary) BEFORE parameterized (:id)
+[ ] Mobile fromJson handles null/renamed fields?
+    - Fallbacks: json['notes'] ?? json['adminNote']
+    - Defaults: ?? 'pending', ?? []
+[ ] formatDate handles dateStyle/timeStyle safely?
+    - Cannot mix dateStyle/timeStyle with year/month/day fields
+```
+
 ---
 
 ## Review Output Format

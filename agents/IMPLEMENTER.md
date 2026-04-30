@@ -221,6 +221,145 @@ wasn't run first.
 
 ---
 
+## API Contract Rules
+
+These rules prevent common frontend/backend mismatches that cause runtime crashes.
+
+### Field naming consistency
+- API response field names MUST exactly match frontend TypeScript interfaces
+- When Prisma model uses `user` but frontend expects `resident`, map in service layer:
+  ```typescript
+  // ✅ Correct
+  return { ...record, resident: record.user };
+  
+  // ❌ Wrong — frontend crashes on record.resident.name
+  return record;
+  ```
+
+### Enum casing
+- Prisma enums: UPPERCASE_WITH_UNDERSCORES (database convention)
+- API responses: ALWAYS lowercase_with_underscores
+- Service layer MUST call `.toLowerCase()` before returning enums:
+  ```typescript
+  return { ...record, status: record.status.toLowerCase() };
+  ```
+- Frontend variant maps: use lowercase keys only
+
+### Pagination response structure
+ALL list endpoints MUST return consistent shape:
+```typescript
+{
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+```
+Create a `paginate()` helper and use it everywhere.
+
+### Auth bootstrap endpoint
+`/auth/me` MUST return all data needed to initialize the app:
+```typescript
+{
+  user: { id, name, email, role, ... },
+  units: [...],      // For multi-tenant/property apps
+  permissions?: [],  // If RBAC
+  settings?: {}      // User preferences
+}
+```
+Do NOT require multiple API calls on app startup.
+
+### File uploads
+- Always use presigned URL pattern: client → S3 direct
+- NEVER store local filesystem paths in database
+- Store only the S3/CDN URL after upload completes
+
+### Auth token lifecycle
+- Only clear auth token on HTTP 401 Unauthorized
+- Network errors and timeouts should NOT trigger logout:
+  ```typescript
+  // ✅ Correct
+  if (error.response?.status === 401) clearToken();
+  
+  // ❌ Wrong — logs out on network timeout
+  if (error) clearToken();
+  ```
+
+---
+
+## NestJS-Specific Rules
+
+### Route ordering
+Define routes in this order — specific paths BEFORE parameterized paths:
+```typescript
+// ✅ Correct
+@Get('stats')
+getStats() { ... }
+
+@Get(':id')
+getById(@Param('id') id: string) { ... }
+
+// ❌ Wrong — /stats matches as id='stats', returns 404
+@Get(':id')
+getById(@Param('id') id: string) { ... }
+
+@Get('stats')
+getStats() { ... }
+```
+
+---
+
+## Frontend-Specific Rules (React/Admin)
+
+### Null safety in tables and lists
+All property access in table cells, list renderers, and cards MUST use optional chaining:
+```typescript
+// ✅ Correct
+row.original.resident?.name ?? '—'
+
+// ❌ Wrong — crashes if resident is null
+row.original.resident.name
+```
+
+### Date formatting safety
+The `formatDate()` utility MUST:
+1. Wrap in try/catch
+2. Check if `dateStyle`/`timeStyle` is used — don't merge with individual fields
+3. Return a fallback on error:
+```typescript
+function formatDate(date: string | Date, opts?: Intl.DateTimeFormatOptions) {
+  try {
+    const hasStyle = opts?.dateStyle || opts?.timeStyle;
+    const finalOpts = hasStyle ? opts : { year: 'numeric', month: 'short', day: 'numeric', ...opts };
+    return new Intl.DateTimeFormat('en-US', finalOpts).format(new Date(date));
+  } catch {
+    return String(date).slice(0, 10);
+  }
+}
+```
+
+---
+
+## Mobile-Specific Rules (Flutter)
+
+### fromJson null safety
+Model `fromJson()` methods MUST:
+1. Match exact field names from API
+2. Include fallbacks for potentially renamed fields
+3. Provide defaults for nullable fields:
+```dart
+// ✅ Correct
+adminNote: (json['notes'] as String?) ?? (json['adminNote'] as String?),
+status: json['status'] as String? ?? 'pending',
+photoUrls: (json['photoUrls'] as List<dynamic>?)?.cast<String>() ?? [],
+
+// ❌ Wrong — crashes if field is null or renamed
+adminNote: json['adminNote'] as String,
+```
+
+---
+
 ## Escalation Rules
 
 Stop and write BLOCKED when:
